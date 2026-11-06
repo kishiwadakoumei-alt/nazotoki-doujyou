@@ -1,120 +1,112 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,readdirSync,existsSync} from 'node:fs';
+import {readFileSync,existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {join,dirname} from 'node:path';
 import {PUZZLES,PUZZLE_MAP} from '../docs/assets/data/index.js';
-import {CATEGORIES,DIFFICULTIES} from '../docs/assets/types.js';
-import {normalize,isCorrect,freshRecord,unseen,selectQuestions,newSession,getScore,getRemainingMs,getSummary,shuffle,isReviewMatch} from '../docs/assets/engine.js';
-import {freshData} from '../docs/assets/storage.js';
+import {CATEGORIES} from '../docs/assets/types.js';
+import {normalize,isCorrect,freshRecord,unseen,selectQuestions,newSession,getScore,getRemainingMs,getSummary,isReviewMatch} from '../docs/assets/engine.js';
+import {freshData,loadData,saveData,STORAGE_KEY} from '../docs/assets/storage.js';
 import {renderVisual} from '../docs/assets/visuals.js';
 const root=join(dirname(fileURLToPath(import.meta.url)),'..');
-const counts = Object.fromEntries(DIFFICULTIES.map(d=>[d.id,PUZZLES.filter(p=>p.difficulty===d.id).length]));
-test('問題100問を正確な難易度配分で収録している',()=>{
-  assert.equal(PUZZLES.length,100);
-  assert.equal(PUZZLE_MAP.size,100);
-  assert.deepEqual(counts,{beginner:20,intermediate:30,advanced:30,expert:20});
-  for(const [id] of CATEGORIES)assert.ok(PUZZLES.some(p=>p.category===id),`ジャンル不足: ${id}`);
+
+test('上級者用24問のみ公開対象、全ジャンルと全IDを検査',()=>{
+  assert.equal(PUZZLES.length,24);
+  assert.equal(PUZZLE_MAP.size,24);
+  assert.deepEqual({advanced:PUZZLES.filter(p=>p.difficulty==='advanced').length,expert:PUZZLES.filter(p=>p.difficulty==='expert').length},{advanced:11,expert:13});
+  assert.equal(PUZZLES.filter(p=>['beginner','intermediate'].includes(p.difficulty)).length,0);
+  assert.ok(new Set(PUZZLES.map(p=>p.category)).size>=9,'公開版のジャンルが少なすぎる');
+  for(const p of PUZZLES)assert.match(p.id,/^F\d{3}$/);
 });
-test('全問題に正答・3段階ヒント・4パート解説があり、描画形式が正しい',()=>{
-  const validKinds=['cards','grid','lines','path','svg','split','text','interaction'];
+
+test('公開24問に解答・許容回答・3ヒント・4項目の解説・レビュー状態',()=>{
+  const validKinds=['cards','grid','lines','path','svg','split','text','interaction','composite'];
   for(const p of PUZZLES){
-    assert.match(p.id,/^[BIAE]\d\d$/);
-    assert.ok(CATEGORIES.some(c=>c[0]===p.category),p.id);
-    assert.ok(typeof p.title==='string'&&p.title.length>=2,p.id);
-    assert.ok(typeof p.prompt==='string'&&p.prompt.length>=6,p.id);
-    assert.ok(typeof p.answer==='string'&&p.answer.length>0,p.id);
-    assert.equal(p.hints.length,3,p.id);
-    for(const hint of p.hints)assert.ok(hint.trim().length>=3,`ヒント不足: ${p.id}`);
-    for(const part of ['clue','steps','aha','transfer'])assert.ok(p.explanation[part]?.trim().length>=3,`解説不足: ${p.id}/${part}`);
+    assert.ok(p.title.length>=3&&p.prompt.length>=12,p.id);
+    assert.ok(p.answer.length>0,p.id);
+    assert.ok(p.hints.length===3&&p.hints.every(h=>h.trim().length>=6),`ヒント不足: ${p.id}`);
+    for(const field of ['clue','steps','aha','transfer'])assert.ok(p.explanation[field]?.length>=(field==='clue'?5:10),`解説不足: ${p.id}/${field}`);
     assert.ok(validKinds.includes(p.visual.kind),p.id);
-    assert.ok(isCorrect(p,p.answer),`正答が不正: ${p.id}`);
-    for(const a of p.aliases)assert.ok(isCorrect(p,a),`許容回答が判定できない: ${p.id}`);
-    assert.ok(renderVisual(p.visual).startsWith('<figure'),p.id);
+    assert.ok(isCorrect(p,p.answer),p.id);
+    assert.equal(p.version,1,p.id);
+    assert.equal(p.qualityStatus,'needs-playtest',p.id);
+    assert.ok(p.skillTags?.length>=2,p.id);
+    assert.ok(p.mechanism?.length>0,p.id);
+    for(const a of p.aliases)assert.ok(isCorrect(p,a),p.id);
+    const html=renderVisual(p.visual,{uiSelection:[],uiRotation:0});
+    assert.ok(html.startsWith('<figure')&&!html.includes('undefined'),p.id);
   }
 });
-test('視覚レイアウトの理解が必要な出題形式が半数を上回る',()=>{
-  const visual=PUZZLES.filter(p=>['grid','path','svg','interaction','split'].includes(p.visual.kind));
-  assert.ok(visual.length>=50,`視覚出題形式: ${visual.length}/100`);
+
+test('視覚的資料を使う問題が半数以上で、操作・SVG・複数資料が動作',()=>{
+  assert.ok(PUZZLES.filter(p=>['svg','grid','path','composite','interaction'].includes(p.visual.kind)).length>=19);
+  assert.ok(renderVisual(PUZZLE_MAP.get('F023').visual).includes('data-interaction="order"'));
+  assert.ok(renderVisual(PUZZLE_MAP.get('F001').visual).includes('<svg'));
 });
-test('仮名・英字・全角半角・空白の正規化と厳格照合',()=>{
-  const p=PUZZLES.find(q=>q.id==='B01');
-  assert.ok(isCorrect(p,'ホシゾラ'));
-  assert.ok(isCorrect(p,'  ほ　し ぞ ら  '));
-  assert.equal(normalize('  ＣＡＴ  '),'cat');
-  assert.ok(isCorrect(PUZZLES.find(q=>q.id==='I27'),'ＣＡＴ'));
-  assert.equal(isCorrect(p,'ほし'),false);
-  assert.equal(isCorrect(p,'ほしぞろ'),false);
+
+test('正規化はカナ・全角英字・空白に対応し曖昧な誤答を通さない',()=>{
+  assert.equal(normalize('  ＣＯＤＥ  '),'code');
+  assert.ok(isCorrect(PUZZLE_MAP.get('F024'),'ＣＯＤＥ'));
+  assert.ok(isCorrect(PUZZLE_MAP.get('F026'),'カ ギ ア ナ'));
+  assert.equal(isCorrect(PUZZLE_MAP.get('F026'),'かぎあね'),false);
+  assert.equal(isCorrect(PUZZLE_MAP.get('F024'),'cod'),false);
 });
-test('未見優先と問題重複制御',()=>{
-  const d=freshData(),p=PUZZLES.find(q=>q.id==='B01');
-  assert.equal(unseen(p,d),true);
+
+test('未見優先・重複なし・10問/20問/全数を正しく抽選',()=>{
+  const d=freshData(),p=PUZZLES[0];assert.ok(unseen(p,d));
   d.records[p.id]={...freshRecord(),lastSeenAt:new Date().toISOString()};
-  assert.equal(unseen(p,d),false,'一度表示した問題は初見に戻らない');
-  const selected=selectQuestions(PUZZLES,d,{mode:'training',count:100,random:()=>0.5});
-  assert.equal(selected.length,100);
-  assert.equal(new Set(selected.map(x=>x.id)).size,100);
-  assert.equal(selected.at(-1).id,p.id,'既見を後回しにする');
+  assert.ok(!unseen(p,d));
+  const training=selectQuestions(PUZZLES,d,{mode:'training',count:100,random:()=>0.3});
+  assert.equal(training.length,24);assert.equal(new Set(training.map(p=>p.id)).size,24);
+  assert.equal(training.at(-1).id,p.id);
+  const trial=selectQuestions(PUZZLES,d,{mode:'trial',count:10,random:()=>0.4});
+  assert.equal(trial.length,10);assert.equal(trial.filter(p=>p.difficulty==='advanced').length,6);assert.equal(trial.filter(p=>p.difficulty==='expert').length,4);
+  const assess=selectQuestions(PUZZLES,d,{mode:'assessment',count:20,random:()=>0.4});
+  assert.equal(assess.length,20);assert.equal(assess.filter(p=>p.difficulty==='advanced').length,10);assert.equal(assess.filter(p=>p.difficulty==='expert').length,10);
+  for(const q of PUZZLES)d.records[q.id]={...freshRecord(),lastSeenAt:new Date().toISOString()};
+  assert.equal(selectQuestions(PUZZLES,d,{mode:'assessment',count:20}).length,0);
 });
-test('実力測定は初見限定、トライアルは初級3・中級4・上級3',()=>{
-  const d=freshData();
-  const assessment=selectQuestions(PUZZLES,d,{mode:'assessment',count:20,random:()=>0.7});
-  assert.equal(assessment.length,20);
-  assert.equal(new Set(assessment.map(p=>p.id)).size,20);
-  const trial=selectQuestions(PUZZLES,d,{mode:'trial',count:10,random:()=>0.5});
-  assert.equal(trial.length,10);
-  assert.deepEqual({beginner:trial.filter(p=>p.difficulty==='beginner').length,intermediate:trial.filter(p=>p.difficulty==='intermediate').length,advanced:trial.filter(p=>p.difficulty==='advanced').length},{beginner:3,intermediate:4,advanced:3});
-  for(const p of PUZZLES)d.records[p.id]={...freshRecord(),lastSeenAt:new Date().toISOString()};
-  assert.equal(selectQuestions(PUZZLES,d,{mode:'assessment',count:20}).length,0,'既見は実力測定に混ぜない');
-});
-test('時間制限は絶対時刻で進む・更新によって延長しない',()=>{
+
+test('タイマーは絶対時刻方式、休止やリロードで時間延長されない',()=>{
   const d=freshData(),s=newSession(PUZZLES.slice(0,10),d,'trial',false);
-  assert.equal(s.deadlineAt-s.startedAt,300_000);
-  assert.equal(getRemainingMs(s,s.startedAt+15_000),285_000);
-  assert.equal(getRemainingMs(s,s.deadlineAt+10_000),0);
+  assert.equal(s.deadlineAt-s.startedAt,300000);
+  assert.equal(getRemainingMs(s,s.startedAt+15000),285000);
+  assert.equal(getRemainingMs(s,s.deadlineAt+10000),0);
   const a=newSession(PUZZLES.slice(0,20),d,'assessment',false);
-  assert.equal(a.deadlineAt-a.startedAt,1_200_000);
+  assert.equal(a.deadlineAt-a.startedAt,1200000);
   assert.equal(newSession(PUZZLES.slice(0,10),d,'training',false).deadlineAt,null);
 });
-test('初見の解答と練習の正解を混同しない',()=>{
+
+test('初見無ヒントと復習後の正解を混同しない',()=>{
   const d=freshData(),s=newSession(PUZZLES.slice(0,2),d,'training',false);
   const a=s.answers[s.questionIds[0]];
   a.correct=true;a.submitted=true;a.attempts=2;a.firstSeen=true;a.hintsUsed=1;
   assert.equal(getScore(s),1);
-  const sum=getSummary(s,false,s.startedAt+120_000);
-  assert.equal(sum.score,1);
-  assert.equal(sum.initialCorrect,0);
-  assert.equal(sum.hintsUsedQuestions,1);
-  assert.equal(sum.firstSeenAnswered,1);
+  const sum=getSummary(s,false,s.startedAt+120000);
+  assert.equal(sum.initialCorrect,0);assert.equal(sum.hintsUsedQuestions,1);assert.equal(sum.firstSeenAnswered,1);
 });
-test('復習の抽出条件が互いに独立する',()=>{
+
+test('復習カテゴリの判定は独立している',()=>{
   const r={...freshRecord(),everSkipped:true,bookmarked:true,maxHintsUsed:2,firstElapsedSec:91,attempts:[{at:'',answer:'x',correct:false,elapsedSec:91,mode:'training',firstForQuestion:true,hintsUsed:2}]};
-  for(const type of ['wrong','hint','skip','bookmark','slow']) assert.ok(isReviewMatch(r,type),type);
+  for(const type of ['wrong','hint','skip','bookmark','slow'])assert.ok(isReviewMatch(r,type),type);
   assert.equal(isReviewMatch(freshRecord(),'wrong'),false);
 });
-test('HTMLのエスケープと全表示形式のコンテンツ生成',()=>{
-  assert.ok(renderVisual({kind:'cards',items:['<script>alert(1)</script>']}).includes('&lt;script&gt;'));
-  assert.ok(!renderVisual({kind:'cards',items:['<script>alert(1)</script>']}).includes('<script>'));
-  for(const p of PUZZLES){
-    const html=renderVisual(p.visual,{uiSelection:[],uiRotation:0});
-    assert.ok(html.length>25,p.id);
-    assert.ok(!html.includes('undefined'),p.id);
-  }
+
+test('ローカル保存v1からv2へ既存成績を保持して移行し、記録を再保存',()=>{
+  const items=new Map();
+  globalThis.localStorage={getItem:k=>items.get(k)??null,setItem:(k,v)=>items.set(k,v),removeItem:k=>items.delete(k)};
+  const old={version:1,records:{F001:{...freshRecord(),solved:true,bookmarked:true}},summaries:[],active:null};
+  items.set(STORAGE_KEY,JSON.stringify(old));
+  const migrated=loadData();assert.equal(migrated.version,2);
+  assert.ok(migrated.records.F001.solved);assert.ok(migrated.records.F001.bookmarked);
+  assert.ok(saveData(migrated));assert.equal(JSON.parse(items.get(STORAGE_KEY)).version,2);
 });
-test('GitHub Pages用の静的生成物が存在し、相対参照になっている',()=>{
-  assert.ok(existsSync(join(root,'docs/index.html')));
-  assert.ok(existsSync(join(root,'docs/assets/main.js')));
-  assert.ok(existsSync(join(root,'docs/assets/style.css')));
-  const html=readFileSync(join(root,'docs/index.html'),'utf8');
-  assert.ok(html.includes('./assets/main.js'));
-  assert.ok(html.includes('./assets/style.css'));
-  assert.ok(!html.includes('src="/src/main.ts"'));
-});
-test('既知の矛盾を修正し、図と手順の整合性を固定',()=>{
-  assert.equal(PUZZLE_MAP.get('I04').answer,'はなび');
-  assert.match(PUZZLE_MAP.get('I04').explanation.steps,/1→び/);
-  assert.match(PUZZLE_MAP.get('I07').explanation.steps,/ひみつ/);
-  assert.match(PUZZLE_MAP.get('I23').prompt,/6つ/);
-  assert.equal(PUZZLE_MAP.get('A06').answer,'21');
-  assert.equal(PUZZLE_MAP.get('E05').answer,'かぎあな');
+
+test('HTMLインジェクションを防ぎ、生成したdocsは相対パスを参照',()=>{
+  const html=renderVisual({kind:'cards',items:['<script>alert(1)</script>']});
+  assert.ok(html.includes('&lt;script&gt;'));assert.ok(!html.includes('<script>'));
+  for(const path of ['docs/index.html','docs/assets/main.js','docs/assets/style.css','docs/assets/data/challenges.js'])assert.ok(existsSync(join(root,path)),path);
+  const entry=readFileSync(join(root,'docs/index.html'),'utf8');
+  assert.ok(entry.includes('./assets/main.js')&&entry.includes('./assets/style.css'));
+  assert.ok(!entry.includes('src="/src/main.ts"'));
 });

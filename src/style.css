@@ -16,3 +16,52 @@
 
 /* Diagram enlargement and evaluation summary */
 .puzzle-tools{display:flex;align-items:center;gap:8px}.zoom-btn{border:1px solid #3c3a52;border-radius:5px;font-size:11px;padding:9px 11px;color:#c8b9f6}.zoom-btn:hover{border-color:#ad97ff;color:white}.puzzle-zoom{width:min(96vw,1020px);max-height:92vh;margin:auto;border:1px solid #5b537e;border-radius:16px;padding:18px;background:#11111d;color:#f8f5ff;box-shadow:0 22px 90px #0009;overflow:auto}.puzzle-zoom::backdrop{background:rgba(0,0,0,.84);backdrop-filter:blur(4px)}.zoom-top{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:13px;font-size:14px}.zoom-top button{border:1px solid #44425c;border-radius:7px;padding:10px 14px}.puzzle-zoom .puzzle-figure{margin:0;min-height:min(63vh,460px);padding:30px 20px}.puzzle-zoom .puzzle-svg{max-width:900px}.overall-row{display:grid;grid-template-columns:2fr 1fr 1fr;gap:1px;border:1px solid #302e45;background:#302e45;border-radius:10px;overflow:hidden;margin-bottom:20px}.overall-row>div{background:#151521;padding:25px}.overall-row small{display:block;color:#b9b2c9;font-size:11px;margin-bottom:13px}.overall-row strong{display:block;font-size:22px;color:#ede7ff}.overall-row p{font-size:11px;line-height:1.75;color:#9695af;margin:11px 0 0}@media(max-width:720px){.overall-row{grid-template-columns:repeat(2,1fr)}.overall-row>div:first-child{grid-column:1/-1}.overall-row>div{padding:20px 16px}.overall-row strong{font-size:18px}.puzzle-zoom{padding:12px}.puzzle-zoom .puzzle-figure{margin:0;min-height:310px;padding:15px 8px}}
+
+/* Advanced workshop: multiple independent evidence panels, readable on touch screens. */
+.visual-composite{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px;width:100%;align-items:stretch}
+.visual-composite-card{min-width:0;border-radius:10px;padding:17px 15px;background:#1b1d30;border:1px solid #47405f;display:flex;flex-direction:column;gap:12px}
+.visual-composite-card>h3{margin:0;color:#c7b4ff;font-size:12px;line-height:1.6;letter-spacing:.02em;min-height:19px}
+.visual-composite-card>.puzzle-figure{padding:9px 0;margin:0;min-height:0;overflow-x:auto;max-width:100%;width:100%;border:0;border-radius:0;background:none;gap:8px}
+.visual-composite-card>.puzzle-figure>.visual-cards{gap:7px}
+.visual-composite-card>.puzzle-figure .visual-card{min-height:56px;padding:17px 4px}
+.visual-composite-card>.puzzle-figure .visual-card>span:last-child{font-size:clamp(12px,1.7vw,19px);overflow-wrap:anywhere}
+.visual-composite-card>.puzzle-figure .visual-grid,.visual-composite-card>.puzzle-figure .visual-path{--cell:clamp(32px,3.7vw,48px)}
+.visual-composite-card>.puzzle-figure .visual-lines{font-size:clamp(12px,1.45vw,17px);line-height:2.15;letter-spacing:.01em;white-space:pre-wrap;overflow-wrap:anywhere}
+.visual-composite-card>.puzzle-figure .visual-split{grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}
+.visual-composite-card>.puzzle-figure .split-line{font-size:12px;line-height:2}
+.visual-composite-card>.puzzle-figure .visual-cards{grid-template-columns:repeat(var(--cols),minmax(0,1fr))}
+.visual-composite-card>.puzzle-figure .interaction-choices{grid-template-columns:repeat(auto-fit,minmax(58px,1fr));gap:7px}
+.visual-composite-card>.puzzle-figure .interaction-choice{min-height:66px;gap:7px}
+.visual-composite-card>.puzzle-figure .interaction-choice span{font-size:23px}
+.composite-note{margin:0;color:#b4abc9;font-size:11px;line-height:1.8}
+.question-navigator{margin-top:14px;padding:7px 13px;background:#141523;border:1px solid #33334b;border-radius:8px}
+.question-navigator>summary{cursor:pointer;font-size:12px;font-weight:700;color:#d5c9fa;padding:8px 0}
+.question-navigator>summary span{color:#9993ae;font-size:10px;margin-left:13px;font-weight:500}
+.question-navigator .session-progress{flex-wrap:wrap;gap:7px;padding:10px 0}
+.question-navigator .num-chip{min-width:36px;height:36px}
+.navigator-legend{color:#9792b0;font-size:10px;margin:0 0 7px;line-height:1.8}
+.zoom-top{align-items:flex-start}.zoom-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.zoom-controls button{border:1px solid #454260;border-radius:6px;padding:8px 11px;min-width:35px}
+.zoom-controls button:hover{border-color:#bdadff}
+.zoom-controls output{font-size:11px;color:#c8bafa;min-width:43px;text-align:center}
+.zoom-viewport{max-height:74vh;overflow:auto;min-height:230px}
+.zoom-viewport .puzzle-figure{min-height:250px}
+.attempt-history{margin-top:15px;border:1px solid #353249;border-radius:7px;padding:10px 13px;color:#c5bbda;font-size:11px}
+.attempt-history summary{cursor:pointer}.attempt-history ol{margin:12px 0 3px;padding:0 0 0 22px}
+.attempt-history li{margin-top:7px;line-height:1.7}.attempt-history li small{margin-left:11px;color:#aba6bf}
+.skill-section{margin-top:18px}
+.storage-actions{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+@media(max-width:720px){
+  .visual-composite{grid-template-columns:1fr;gap:10px}
+  .visual-composite-card{padding:13px 12px}
+  .visual-composite-card>.puzzle-figure .visual-grid,.visual-composite-card>.puzzle-figure .visual-path{--cell:clamp(32px,9vw,46px)}
+  .visual-composite-card>.puzzle-figure .visual-lines{font-size:14px}
+  .question-navigator .session-progress{max-height:200px;overflow-y:auto}
+  .answer-row{position:fixed;bottom:max(8px,env(safe-area-inset-bottom));left:11px;right:11px;z-index:25;padding:9px;background:#151628;border:1px solid #5a4a86;border-radius:11px;box-shadow:0 12px 40px #000b}
+  .answer-row input{height:48px}
+  .game-page{padding-bottom:92px}
+  .zoom-controls{justify-content:flex-end}
+  .puzzle-zoom .zoom-top{display:block}
+  .zoom-top>strong{display:block;margin-bottom:10px}
+  .puzzle-zoom .visual-composite-card>.puzzle-figure{min-height:0}
+}

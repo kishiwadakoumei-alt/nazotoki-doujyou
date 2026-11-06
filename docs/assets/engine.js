@@ -24,7 +24,7 @@ export function selectQuestions(puzzles, data, opts) {
     const first = shuffle(pool.filter(p => unseen(p, data)), rand);
     if (opts.mode === 'assessment') {
         // 初見の正答率を守るため、既出問題の補充はしない。
-        const quotas = { beginner: 4, intermediate: 6, advanced: 6, expert: 4 };
+        const quotas = { beginner: 0, intermediate: 0, advanced: 10, expert: 10 };
         const chosen = [];
         for (const d of DIFFICULTIES) {
             chosen.push(...first.filter(p => p.difficulty === d.id).slice(0, quotas[d.id]));
@@ -34,9 +34,9 @@ export function selectQuestions(puzzles, data, opts) {
         return shuffle(chosen.slice(0, opts.count), rand);
     }
     if (opts.mode === 'trial') {
-        const desired = { beginner: 3, intermediate: 4, advanced: 3, expert: 0 };
+        const desired = { beginner: 0, intermediate: 0, advanced: 6, expert: 4 };
         const chosen = [];
-        for (const d of DIFFICULTIES.slice(0, 3)) {
+        for (const d of DIFFICULTIES.filter(d => desired[d.id] > 0)) {
             const level = shuffle(pool.filter(p => p.difficulty === d.id), rand);
             const ordered = [...level.filter(p => unseen(p, data)), ...level.filter(p => !unseen(p, data))];
             chosen.push(...ordered.slice(0, desired[d.id]));

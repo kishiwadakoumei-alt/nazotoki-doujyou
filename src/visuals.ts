@@ -23,6 +23,7 @@ export function renderVisual(v: Visual, state?: {uiSelection?:number[];uiRotatio
     case 'split': html = `<div class="visual-split">${v.panels.map(p=>`<section><div class="split-heading">${e(p.heading)}</div>${p.lines.map(x=>`<div class="split-line">${e(x)}</div>`).join('')}</section>`).join('')}</div>`;break;
     case 'svg': html = `<svg class="puzzle-svg" viewBox="0 0 540 250" role="img" aria-label="${e(v.caption || '図形を使った謎')}">${v.body}</svg>`;break;
     case 'text': html = `<div class="visual-text">${e(v.content)}</div>`;break;
+    case 'composite': html = `<div class="visual-composite">${v.panels.map(panel=>`<section class="visual-composite-card"><h3>${e(panel.heading)}</h3>${renderVisual(panel.visual,state)}${panel.note?`<p class="composite-note">${e(panel.note)}</p>`:''}</section>`).join('')}</div>`;break;
     case 'interaction': {
       if(v.task==='select')html=`<div class="interaction-choices">${v.items.map((x,i)=>`<button type="button" class="interaction-choice ${(state?.uiSelection||[]).includes(i)?'is-selected':''}" data-interaction="select" data-index="${i}"><small>${i+1}</small><span>${e(x)}</span></button>`).join('')}</div>`;
       if(v.task==='order'){

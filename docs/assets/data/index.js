@@ -1,9 +1,6 @@
-import { beginner } from './beginner.js';
-import { intermediate } from './intermediate.js';
-import { advanced } from './advanced.js';
-import { expert } from './expert.js';
-import { curated } from './curated.js';
-// 難易度ごとに収録した問題と、品質改善後の問題を一つの問題集に統合。
-export const PUZZLES = [...beginner, ...intermediate, ...advanced, ...expert, ...curated]
-    .sort((a, b) => a.id.localeCompare(b.id));
+import { challenges } from './challenges.js';
+/** Quality gate: short, direct-extraction exercises are not included in the playable pool. */
+export const DEFERRED_IDS = ['F005', 'F006', 'F010', 'F012', 'F029', 'F030'];
+const deferred = new Set(DEFERRED_IDS);
+export const PUZZLES = challenges.filter(p => !deferred.has(p.id)).sort((a, b) => a.id.localeCompare(b.id));
 export const PUZZLE_MAP = new Map(PUZZLES.map(p => [p.id, p]));

@@ -25,5 +25,5 @@ test('GitHub PagesのJSファイルが参照する相対モジュールはすべ
       assert.ok(existsSync(imported), `${file}: missing ${match[1]}`);
     }
   }
-  assert.ok(checked >= 10, `Unexpectedly few imports inspected: ${checked}`);
+  assert.ok(checked >= 8, `Unexpectedly few imports inspected: ${checked}`);
 });

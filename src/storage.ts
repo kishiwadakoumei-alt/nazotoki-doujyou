@@ -1,7 +1,9 @@
 import type {SavedData,ActiveSession} from './types';
 export const STORAGE_KEY='nazo-forge-v1';
-export const freshData=():SavedData=>({version:1,records:{},summaries:[],active:null});
+export const freshData=():SavedData=>({version:2,records:{},summaries:[],active:null});
 export let storageIssue='';
+/** Corrupt or unknown-version records must never be overwritten. */
+export let damagedSource:string|null=null;
 const isObject=(v:unknown):v is Record<string,unknown>=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 function validActive(v:unknown):v is ActiveSession{
   if(!isObject(v))return false;
@@ -18,26 +20,30 @@ function validActive(v:unknown):v is ActiveSession{
   });
 }
 export function loadData():SavedData{
+  let raw:string|null=null;
   try{
-    const raw=localStorage.getItem(STORAGE_KEY);
+    raw=localStorage.getItem(STORAGE_KEY);
     if(!raw)return freshData();
     const v:unknown=JSON.parse(raw);
-    if(!isObject(v)||v.version!==1||!isObject(v.records)||!Array.isArray(v.summaries))throw new Error('invalid version / structure');
+    if(!isObject(v)||![1,2].includes(Number(v.version))||!isObject(v.records)||!Array.isArray(v.summaries))throw new Error('invalid version / structure');
     if(!v.summaries.every(x=>isObject(x)&&typeof x.mode==='string'&&Array.isArray(x.answers)&&Number.isFinite(x.score)&&Number.isFinite(x.total)))throw new Error('invalid summaries');
     if(!Object.values(v.records).every(r=>isObject(r)&&Array.isArray(r.attempts)&&typeof r.bookmarked==='boolean'&&typeof r.solved==='boolean'&&typeof r.everSkipped==='boolean'))throw new Error('invalid records');
-    const data=v as unknown as SavedData;
+    const data={...v,version:2} as unknown as SavedData;
+    if(v.version===1)storageIssue='既存の学習記録を新形式へ移行しました。過去の回答履歴は保持されています。';
+    damagedSource=null;
     if(data.active&&!validActive(data.active)){
       data.active=null;
       storageIssue='前回のプレイ状態が破損していたため破棄しました。保存済みの解答記録は保持しています。';
     }
     return data;
   }catch{
-    storageIssue='保存済みデータが読み込めませんでした。元データを保護するため、新しい記録をメモリ上で開始しています。';
+    damagedSource=raw;
+    storageIssue='保存済みデータが読み込めませんでした。元データを保護し、新しい記録はメモリ上で開始しています。「元データを保存」からJSONを退避できます。';
     return freshData();
   }
 }
 export function saveData(data:SavedData):boolean{
-  if(storageIssue.includes('読み込めませんでした'))return false;
+  if(damagedSource!==null)return false;
   try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));return true;}
   catch{storageIssue='ブラウザの保存領域を使用できません。今回の記録はページを閉じると消える可能性があります。';return false;}
 }

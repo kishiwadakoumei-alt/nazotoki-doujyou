@@ -79,21 +79,21 @@ with sync_playwright() as p:
     page2.evaluate('localStorage.setItem("nazo-forge-v1",'+json.dumps(saved)+');')
     page2.set_content(html)
     assert page2.locator('.puzzle-panel').is_visible(),page2.locator('body').inner_text()[:300]
-    # SVG test via storage injection on fresh page with a real E05 puzzle session.
+    # SVG test via storage injection on fresh page with a real F001 puzzle session.
     svgpage=b.new_page(viewport={'width':1440,'height':900})
     svgpage.on('pageerror',lambda e:errors.append(str(e)))
-    state={'id':'preview','mode':'training','questionIds':['E05'],'index':0,'answers':{'E05':{'id':'E05','submitted':False,'answer':'','correct':False,'attempts':0,'hintsUsed':0,'skipped':False,'spentSec':0,'revealed':False,'firstSeen':True}},'startedAt':int(time.time()*1000),'deadlineAt':None,'lastEntryAt':int(time.time()*1000),'firstUnseenCount':1,'isInfinite':False,'totalSolved':0}
+    state={'id':'preview','mode':'training','questionIds':['F001'],'index':0,'answers':{'F001':{'id':'F001','submitted':False,'answer':'','correct':False,'attempts':0,'hintsUsed':0,'skipped':False,'spentSec':0,'revealed':False,'firstSeen':True}},'startedAt':int(time.time()*1000),'deadlineAt':None,'lastEntryAt':int(time.time()*1000),'firstUnseenCount':1,'isInfinite':False,'totalSolved':0}
     svgpage.evaluate("()=>{let store=new Map();Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem(k){return store.get(k)??null},setItem(k,v){store.set(k,String(v))}}})}")
     svgpage.evaluate('localStorage.setItem("nazo-forge-v1",'+json.dumps(json.dumps({'version':1,'records':{},'summaries':[],'active':state}))+');')
     svgpage.set_content(html)
-    assert svgpage.locator('article > .puzzle-figure .puzzle-svg polygon').count()==2
+    assert svgpage.locator('article > .puzzle-figure .puzzle-svg rect').count()>=25
     svgpage.locator('[data-action="zoom"]').click()
     assert svgpage.locator('#puzzle-zoom').is_visible()
     svgpage.locator('[data-action="close-zoom"]').click()
     assert not svgpage.locator('#puzzle-zoom').is_visible()
     svgpage.screenshot(path=str(OUT/'visual_puzzle_desktop.png'),full_page=True)
-    # The interaction renderer supports select / rotate / ordered selection.
-    for qid,indices,expected in [('B03',[1],'2'),('B10',['rotate','rotate'],'うえ'),('I24',[2,0,1],'はなび')]:
+    # Ordered interactive cards inside a nested visual are clickable and graded.
+    for qid,indices,expected in [('F023',[2,5,1,4,3,0],'ほしのかけら')]:
         interaction=b.new_page(viewport={'width':1000,'height':800})
         interaction.on('pageerror',lambda e:errors.append(str(e)))
         interaction.evaluate("()=>{let store=new Map();Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem(k){return store.get(k)??null},setItem(k,v){store.set(k,String(v))}}})}")
@@ -102,7 +102,7 @@ with sync_playwright() as p:
         interaction.set_content(html)
         for ix in indices:
             if ix=='rotate':interaction.locator('[data-interaction="rotate"][data-step="1"]').first.click()
-            else:interaction.locator('[data-interaction][data-index="'+str(ix)+'"]').first.click()
+            else:interaction.locator('.puzzle-panel > .puzzle-figure [data-interaction][data-index="'+str(ix)+'"]').first.click()
         assert interaction.locator('#answer-input').input_value()==expected,(qid,interaction.locator('#answer-input').input_value())
         interaction.locator('#answer-input').press('Enter')
         assert interaction.locator('.reveal').is_visible(),qid
@@ -140,7 +140,7 @@ with sync_playwright() as p:
     over=mobile.evaluate('document.documentElement.scrollWidth-document.documentElement.clientWidth')
     assert over<=2, f'mobile overflows {over}px'
     assert not errors,errors
-    print('Browser smoke PASS: trial, submission, navigation, result, hint, wrong/correct, bookmark, stats, review, data reload, SVG, zoom, select/order/rotate, timeout, assessment privacy, mobile')
+    print('Browser smoke PASS: trial, submission, navigation, result, hint, wrong/correct, bookmark, stats, review, data reload, SVG, zoom, nested order, timeout, assessment privacy, mobile')
     print('Mobile horizontal overflow:',over,'pixels')
     print('Screenshots:',len(list(OUT.glob('*.png'))))
     b.close()

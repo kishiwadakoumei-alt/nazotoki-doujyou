@@ -35,6 +35,9 @@ export function renderVisual(v, state) {
         case 'text':
             html = `<div class="visual-text">${e(v.content)}</div>`;
             break;
+        case 'composite':
+            html = `<div class="visual-composite">${v.panels.map(panel => `<section class="visual-composite-card"><h3>${e(panel.heading)}</h3>${renderVisual(panel.visual, state)}${panel.note ? `<p class="composite-note">${e(panel.note)}</p>` : ''}</section>`).join('')}</div>`;
+            break;
         case 'interaction': {
             if (v.task === 'select')
                 html = `<div class="interaction-choices">${v.items.map((x, i) => `<button type="button" class="interaction-choice ${(state?.uiSelection || []).includes(i) ? 'is-selected' : ''}" data-interaction="select" data-index="${i}"><small>${i + 1}</small><span>${e(x)}</span></button>`).join('')}</div>`;

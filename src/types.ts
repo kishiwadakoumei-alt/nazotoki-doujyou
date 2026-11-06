@@ -20,6 +20,7 @@ export type Visual =
   | { kind: 'svg'; body: string; caption?: string }
   | { kind: 'split'; panels: { heading: string; lines: string[] }[]; caption?: string }
   | { kind: 'text'; content: string }
+  | { kind: 'composite'; panels: {heading: string; visual: Visual; note?: string}[]; caption?: string }
   | { kind: 'interaction'; task: 'select' | 'order' | 'rotate'; items: string[]; caption?: string };
 export interface Puzzle {
   id: string;
@@ -33,6 +34,11 @@ export interface Puzzle {
   hints: [string, string, string];
   explanation: { clue: string; steps: string; aha: string; transfer: string };
   visualRequired: boolean;
+  /** 問題本文の変更履歴を追跡するための版。旧問題のIDは使い回さない。 */
+  version?: number;
+  skillTags?: string[];
+  mechanism?: string;
+  qualityStatus?: 'needs-playtest' | 'reviewed';
 }
 export type Mode = 'trial' | 'training' | 'assessment' | 'review';
 export type ReviewFilter = 'wrong'|'hint'|'skip'|'bookmark'|'slow';
@@ -72,7 +78,7 @@ export interface SessionSummary {
   answers: SessionAnswer[];
 }
 export interface SavedData {
-  version: 1; records: Record<string, QuestionRecord>;
+  version: 2; records: Record<string, QuestionRecord>;
   summaries: SessionSummary[];
   active: ActiveSession | null;
 }
