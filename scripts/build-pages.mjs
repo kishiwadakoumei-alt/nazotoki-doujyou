@@ -1,5 +1,5 @@
 import {execFileSync} from 'node:child_process';
-import {mkdirSync,rmSync,readdirSync,readFileSync,writeFileSync,copyFileSync} from 'node:fs';
+import {mkdirSync,rmSync,readdirSync,readFileSync,writeFileSync,copyFileSync,existsSync} from 'node:fs';
 import {join,dirname,resolve,relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -16,8 +16,8 @@ function processDirectory(dir){
     if(!f.endsWith('.js'))continue;
     let code=readFileSync(f,'utf8');
     code=code.replace(/^import\s+['"]\.\/style\.css['"];?\s*$/gm,'');
-    code=code.replace(/(\bfrom\s*['"])(\.{1,2}\/[^'"\n]+)(['"])/g, (_full,start,p,end)=>start+(p.endsWith('.js')?p:p+'.js')+end);
-    code=code.replace(/(\bimport\s*\(\s*['"])(\.{1,2}\/[^'"\n]+)(['"]\s*\))/g, (_full,start,p,end)=>start+(p.endsWith('.js')?p:p+'.js')+end);
+    code=code.replace(/(\bfrom\s*['"])(\.{1,2}\/[^'"\n]+)(['"])/g, (_full,start,p,end)=>start+(p.endsWith('.js')?p:existsSync(resolve(dirname(f),p,'index.js'))?p+'/index.js':p+'.js')+end);
+    code=code.replace(/(\bimport\s*\(\s*['"])(\.{1,2}\/[^'"\n]+)(['"]\s*\))/g, (_full,start,p,end)=>start+(p.endsWith('.js')?p:existsSync(resolve(dirname(f),p,'index.js'))?p+'/index.js':p+'.js')+end);
     writeFileSync(f,code);
   }
 }

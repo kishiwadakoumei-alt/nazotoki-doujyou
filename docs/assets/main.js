@@ -1,6 +1,6 @@
 
 import { CATEGORIES, DIFFICULTIES } from './types.js';
-import { PUZZLES, PUZZLE_MAP } from './data.js';
+import { PUZZLES, PUZZLE_MAP } from './data/index.js';
 import { duration, difficultyLabel, categoryLabel, freshRecord, getRemainingMs, getScore, getSummary, isCorrect, isReviewMatch, newSession, selectQuestions, unseen } from './engine.js';
 import { escapeHtml as esc, renderVisual } from './visuals.js';
 import { freshData, loadData, saveData, storageIssue } from './storage.js';

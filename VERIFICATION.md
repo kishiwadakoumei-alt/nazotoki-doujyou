@@ -22,15 +22,25 @@
 | 未見優先、問題の重複制御、実力測定の既見排除、トライアル難易度比率 | Node.js `node:test` | 合格 |
 | 絶対時刻タイマー、集計、復習条件 | Node.js `node:test` | 合格 |
 | GitHub Pages用ファイル出力、相対URL、TypeScriptコンパイル | `npm test` → `build:pages` | 合格 |
+| 公開用JSの全相対importが存在するかの検査 | `tests/pages-imports.test.mjs` | 合格（不具合の再現→修正後に合格） |
+| 公開用JSのES Modules読み込み・PC／モバイル画面・トライアル開始 | Chromium Blob URL経由 | 合格（画面表示、JavaScriptエラー0件） |
 | トライアル、自由練習、誤答再入力、正解・解説、問題移動 | Chromium / Playwright | 合格 |
 | ヒント、ブックマーク、成績表示、復習、保存データの再読み込み | Chromium / Playwright | 合格 |
 | SVG描画・拡大、選択・回転・順序選択の操作型問題 | Chromium / Playwright | 合格（抜粋） |
 | 時間切れによる自動終了、実力測定での解答中の正答秘匿 | Chromium / Playwright | 合格 |
 | スマートフォン390px幅、縦長表示、横オーバーフロー | Chromium / Playwright | 合格（横溢れ0px） |
 
-Node.js自動テスト：**12件成功、失敗0件**。
+Node.js自動テスト：**13件成功、失敗0件**。
 
-Chromium試験は、実行環境からHTTPやfile URLへのブラウザアクセスが管理ポリシー上で制限されたため、**同じTypeScriptをCommonJSへ変換してブラウザに埋め込む方法**で実施しました。公開したURLからの実際のES Modules読み込み・GitHub Pages/CDN上での表示まで確認したものではありません。Node.jsでは配布用ES Modulesの import が正常に動作することを別途確認しています。
+Chromium試験は、実行環境からHTTPやfile URLへのブラウザアクセスが管理ポリシー上で制限されたため、**同じTypeScriptをCommonJSへ変換してブラウザに埋め込む方法**で実施しました。公開したURLからの実際のES Modules読み込み・GitHub Pages/CDN上での表示まで確認したものではありません。さらに、配布用 `docs/assets/` のES ModulesをChromiumのBlob URLに展開して実際にブラウザのモジュールローダーで読み込み、PC／スマートフォン画面表示とトライアル開始を確認しました。実際のGitHub Pages上でのHTTP配信は未確認です。
+
+## 2026-11-06 GitHub Pages黒画面障害対応
+
+- **確認した原因：** 公開ファイル `docs/assets/main.js` が `./data.js` を import していたが、このファイルは存在せず、本来は `./data/index.js` だった。GitHubの公開設定には問題がなかった。
+- **原因となった処理：** `scripts/build-pages.mjs` がディレクトリを指すimportに機械的に `.js` を追加していた。
+- **修正箇所：** ディレクトリ内の `index.js` がある場合、`/index.js` を付与するようビルド処理を修正。生成済み `docs/assets/main.js` の参照も修正。
+- **再発防止：** 公開用JSのすべての相対importが実在することをテストで確認。修正前はテスト失敗を再現し、修正後に全件合格。
+- **影響範囲：** 出題データ、画面機能、保存データ形式は変更なし。GitHubリポジトリへの反映・実公開確認は未実施。
 
 ## 修正した不整合
 

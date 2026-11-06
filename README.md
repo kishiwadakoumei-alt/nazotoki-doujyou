@@ -40,8 +40,6 @@
 
 一般的なURLは `https://<GitHubユーザー名>.github.io/<リポジトリ名>/` です。公開URLはGitHubのPages画面に表示されるものを優先してください。
 
-**静的公開ファイルだけのZIPを使う場合**：ZIPを展開して `index.html` と `assets/` がリポジトリ直下に来るようアップロードし、Pagesのフォルダーを **`/(root)`** にします。こちらはソースの編集・保守用ファイルを含みません。
-
 > GitHubへ直接commit、push、公開設定変更・デプロイは実施していません。上記は利用者が操作する手順です。
 
 ## ローカルで動かす
@@ -73,9 +71,19 @@ Python PlaywrightとChromiumが利用できる環境では、任意でブラウ�
 
 ```bash
 python tests/run_browser_smoke.py
+python tests/run_browser_esm_smoke.py
 ```
 
-上記のPythonテストは開発環境の制約に合わせ、ネットワークを使わず、TypeScriptをCommonJSへ変換してページへ埋め込む方式です。通常のHTTPで公開したサイトそのものを検証するテストではありません。
+`run_browser_smoke.py` はCommonJS化したブラウザ操作テストです。`run_browser_esm_smoke.py` は **GitHub Pages用に生成されたJavaScript** を、モジュールの import 文を保持したままBlob URL経由でChromium内に読み込み、画面・操作が動作することを検査します。これらはHTTP経由の実公開サイトそのものを検証するテストではありません。
+
+`npm test` には、公開用 `docs/assets/` 内で相対参照する JavaScript ファイルがすべて実在するか調べる再発防止テストが含まれます。
+
+## 公開後に画面が真っ黒な場合
+
+1. GitHub Pages の Source が `main` / `/docs` であることを確認してください。
+2. `docs/assets/main.js` の `from './data/index.js'` が正しく記載されているか確認してください。以前のビルドで誤った `./data.js` を出力する不具合があり、2026-11-06に修正しました。
+3. 変更後は `npm test` を実行し、`docs/` をコミットして公開し直してください。
+4. すでに公開したGitHub Pagesでは、公開が反映されてから `Ctrl+F5` で再読み込みしてください。
 
 ## ファイル構成
 
