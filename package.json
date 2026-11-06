@@ -1,0 +1,18 @@
+{
+  "name": "nazo-forge",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "build:pages": "node scripts/build-pages.mjs",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "npm run build:pages && node --test tests/*.test.mjs",
+    "verify": "npm run test"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^7.1.7"
+  }
+}
